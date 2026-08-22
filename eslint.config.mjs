@@ -88,6 +88,7 @@ const eslintConfig = [
     'commitlint.config.js',
     '.cursor/**',
     '.agents/**',
+    'workers/**',
   ]),
 
   // Prettier config (must be last for formatting rules)

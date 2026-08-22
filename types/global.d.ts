@@ -33,6 +33,8 @@ export interface NavigationItem {
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
+      ADDRESS_SEARCH_SECRET: string;
+      ADDRESS_SEARCH_URL: string;
       NEXT_PUBLIC_APP_URL: string;
       NODE_ENV: 'development' | 'production' | 'test';
       RESEND_API_KEY: string;
