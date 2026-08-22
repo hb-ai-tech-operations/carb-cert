@@ -1,0 +1,109 @@
+# Carb Cert
+
+> Carb Cert is a compliance service that helps California heavy-duty truck owners and fleet operators file Clean Truck Check reports through CARB's CTC-VIS (Clean Truck Check Vehicle Inspection System). Carb Cert connects customers with certified emissions testers and handles CTC-VIS filing end to end.
+
+Carb Cert operates at https://www.carbcert.com and provides CTC-VIS filing assistance for vehicles over 14,000 lbs GVWR required to comply with California's Clean Truck Check program. The service includes submission of vehicle compliance data, coordination with certified testers and testing schedules, and delivery of compliance confirmation after passing emissions testing at CARB-authorized facilities.
+
+## Services
+
+- [Clean Truck Check Filing](https://www.carbcert.com/compliance-form): CTC-VIS reporting and compliance filing for California heavy-duty trucks and fleets
+- [Clean Truck Check Program Guide](https://www.carbcert.com/clean-truck-check): Overview of CARB's Clean Truck Check program, CTC-VIS rules, and compliance requirements
+- [Certified Testers Directory](https://www.carbcert.com/testers): Browse and compare CARB Clean Truck Check emissions testers across California
+- [Tester Partnership Program](https://www.carbcert.com/carb-truck-tester-partnership): Certified emissions testers can join the network to receive testing leads and a free platform listing
+- [Compliance Blog](https://www.carbcert.com/blog): Guides on Clean Truck Check compliance, CTC-VIS filing, and CARB regulations for heavy-duty trucks
+
+## What We Do Not Do
+
+Carb Cert explicitly does not:
+- Perform emissions testing (testing must occur at CARB-authorized facilities)
+- Act as, represent, or speak on behalf of CARB (California Air Resources Board)
+- Provide government services or official CARB certification
+- Offer legal, mechanical, or vehicle repair services
+- Inspect, test, or certify vehicles directly
+- Operate as a DMV or government entity
+
+## How It Works
+
+Carb Cert's CTC-VIS filing process has four steps:
+
+1. **Submit Vehicle Details** — The truck owner or fleet operator provides vehicle information including VIN, license plate, and engine year through the online form at https://www.carbcert.com/compliance-form
+2. **Secure Payment** — Per-vehicle pricing includes the CARB compliance fee and the service/processing fee
+3. **Pass Emissions Inspection** — The vehicle must be tested at a CARB-authorized emissions testing facility (Carb Cert does not perform testing)
+4. **Receive Compliance Confirmation** — After the vehicle passes testing and results are filed through CTC-VIS, a compliance confirmation is sent by email
+
+## Clean Truck Check Program Background
+
+California's Clean Truck Check program is administered by CARB (California Air Resources Board). It requires heavy-duty vehicles over 14,000 lbs GVWR operating in California to undergo periodic emissions testing.
+
+Key program facts:
+- Applies to heavy-duty trucks and buses over 14,000 lbs GVWR
+- Semi-annual testing began January 1, 2025
+- Quarterly testing for OBD-equipped vehicles begins October 2027
+- Out-of-state trucks operating in California must also comply
+- Zero-emission vehicles (battery electric and hydrogen fuel cell) are exempt
+- Non-compliance can result in DMV registration holds, roadside fines, restricted port access, and other CARB enforcement actions
+
+Official CARB program information is available at ww2.arb.ca.gov
+
+## Frequently Asked Questions
+
+**What is Clean Truck Check?**
+Clean Truck Check is a CARB program requiring periodic emissions testing and an annual compliance fee for heavy-duty vehicles over 14,000 lbs GVWR in California. Testing must be performed at CARB-authorized facilities. Carb Cert provides CTC-VIS reporting assistance and connects truck owners with certified testers.
+
+**When does testing start?**
+Semi-annual testing began January 1, 2025. Quarterly testing for OBD-equipped vehicles begins October 2027.
+
+**Do out-of-state trucks need to comply?**
+Yes. Out-of-state trucks operating in California must register in CTC-VIS and follow the same testing schedule.
+
+**What happens if a truck is not compliant?**
+Non-compliance can result in DMV registration holds, roadside fines, port access restrictions, and other CARB enforcement actions.
+
+**Are electric vehicles exempt?**
+Zero-emission vehicles (ZEVs), including battery-electric vehicles and hydrogen fuel cell vehicles, are exempt from Clean Truck Check testing requirements.
+
+**Is the CARB fee included in the price?**
+Yes. The CARB compliance fee is included in the per-vehicle price. Emissions testing must be completed at CARB-authorized facilities.
+
+## Blog
+
+- [California CARB Compliance for Heavy-Duty Trucks — What Operators Should Know](https://www.carbcert.com/blog/california-carb-compliance-heavy-duty-trucks): How CARB compliance applies to heavy-duty trucks, the Clean Truck Check program in context, and practical steps to avoid fines, DMV holds, and downtime
+- [What Is Clean Truck Check? A California Fleet and Owner-Operator Guide](https://www.carbcert.com/blog/what-is-clean-truck-check-california-guide): Program overview, who must comply, CTC-VIS filing process, testing timelines, and CARB enforcement actions
+
+## Testers Directory
+
+Carb Cert maintains a public directory of CARB Clean Truck Check emissions testers in California at https://www.carbcert.com/testers. Fleet owners and owner-operators can browse profiles, compare service areas, and contact credentialed testers. Certified testers can apply to join the network at https://www.carbcert.com/carb-truck-tester-partnership to receive testing leads and a free listing.
+
+## Contact
+
+- Email: support@carbcert.com
+- Phone: (888) 282-8755
+- Website: https://www.carbcert.com
+
+## Industries
+
+- Heavy-duty trucking (vehicles over 14,000 lbs GVWR)
+- California fleet operations and management
+- Commercial vehicle emissions compliance
+- Owner-operators with trucks registered or operating in California
+
+## Locations
+
+- Service area: California, United States (statewide CTC-VIS filing)
+- Out-of-state trucks operating in California are also eligible
+
+## Key Information
+
+- [Home](https://www.carbcert.com/): Service overview, pricing, vehicle requirements, exemptions, compliance procedures, and FAQ
+- [Start Filing](https://www.carbcert.com/compliance-form): Submit vehicle details and begin CTC-VIS compliance filing
+- [Clean Truck Check Info](https://www.carbcert.com/clean-truck-check): CARB program rules and CTC-VIS requirements
+- [Testers Directory](https://www.carbcert.com/testers): Find a CARB Clean Truck Check emissions tester
+- [Tester Partnership](https://www.carbcert.com/carb-truck-tester-partnership): Apply to join the Carb Cert tester network
+- [Blog](https://www.carbcert.com/blog): Compliance guides and CARB regulation articles
+
+## Optional
+
+- [Privacy Policy](https://www.carbcert.com/privacy-policy): Data protection, CCPA rights, and privacy practices
+- [Terms and Conditions](https://www.carbcert.com/terms-and-conditions): Service terms for CTC-VIS reporting assistance
+- [Message Consent](https://www.carbcert.com/message-consent): SMS and email consent and unsubscribe information
+- [Sitemap](https://www.carbcert.com/sitemap.xml): Complete site structure

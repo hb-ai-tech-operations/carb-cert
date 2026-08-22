@@ -1,0 +1,9 @@
+export { SectionAgreement } from './section-agreement';
+export { SectionAvailability } from './section-availability';
+export { SectionBasicInfo } from './section-basic-info';
+export { SectionBusinessDetails } from './section-business-details';
+export { SectionCertification } from './section-certification';
+export { SectionHeading } from './section-heading';
+export { SectionMarketing } from './section-marketing';
+export { SectionPricing } from './section-pricing';
+export { SectionTestingCapability } from './section-testing-capability';
