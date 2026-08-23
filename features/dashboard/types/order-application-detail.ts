@@ -32,12 +32,13 @@ export interface OrderApplicationPayment {
 
 export interface OrderApplicationDetailData {
   applicationType: string;
-  billingAddress: string;
-  billingCity: string;
-  billingCountry: string;
-  billingState: string;
-  billingZipCode: string;
+  billingAddress: string | null;
+  billingCity: string | null;
+  billingCountry: string | null;
+  billingState: string | null;
+  billingZipCode: string | null;
   creationTime: number;
+  currentStep: number | null;
   doingBusinessAs: string | null;
   emailAddress: string;
   entityName: string | null;

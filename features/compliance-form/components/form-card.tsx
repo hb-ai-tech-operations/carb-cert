@@ -13,6 +13,7 @@ import { StepRenderer } from './step-renderer';
 
 import type { FormStepThreeHandle } from './step-three';
 import type { Id } from '@/convex/_generated/dataModel';
+import type { FormSchema } from '@/features/compliance-form/schemas';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -29,13 +30,20 @@ import { useFormState } from '@/features/compliance-form/hooks';
 import {
   type StepDefinition,
   stepDefinitions,
+  type StepNumber,
 } from '@/features/compliance-form/types';
+import {
+  toBillingFields,
+  toContactFields,
+  toVehicleFields,
+} from '@/features/compliance-form/utils/application-payload';
 import { runPostPaymentFollowUp } from '@/features/compliance-form/utils/post-payment-follow-up';
 import { getStepStatus, type StepStatus } from '@/features/compliance-form/utils/step-validation';
 
 // eslint-disable-next-line max-lines-per-function
 export const FormCard = () => {
   const {
+    applicationId,
     canGoPrevious,
     currentStep,
     form,
@@ -44,16 +52,20 @@ export const FormCard = () => {
     isHydrated,
     isLastStep,
     resetForm,
+    setApplicationId,
   } = useFormState();
 
   const saveApplication = useMutation(api.complianceApplications.save);
+  const saveProgress = useMutation(api.complianceApplications.saveProgress);
   const recordPayment = useMutation(api.complianceApplications.recordPaymentAttempt);
 
   const paymentRef = useRef<FormStepThreeHandle>(null);
-  const savedApplicationId = useRef<Id<'complianceApplications'> | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentFormReady, setPaymentFormReady] = useState(false);
+
+  const draftApplicationId = applicationId as Id<'complianceApplications'> | null;
 
   useEffect(() => {
     if (currentStep !== 3) {
@@ -82,6 +94,34 @@ export const FormCard = () => {
     [currentStep, form]
   );
 
+  const saveCompletedStep = async (data: FormSchema, step: StepNumber) => {
+    setIsSaving(true);
+    try {
+      const nextStep = Math.min(step + 1, 3);
+      const appId = await saveProgress({
+        applicationId: draftApplicationId ?? undefined,
+        currentStep: nextStep,
+        ...toContactFields(data),
+        ...(step >= 2 ? { vehicles: toVehicleFields(data.vehicles) } : {}),
+      });
+      setApplicationId(appId);
+      return true;
+    } catch {
+      toast.error('Could not save your progress', {
+        description: 'Please try again.',
+        duration: 5000,
+        position: 'top-center',
+      });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const goToNextStep = async () => {
+    await handleNextStep(saveCompletedStep);
+  };
+
   const onSubmit = async () => {
     setPaymentError(null);
     setIsProcessing(true);
@@ -96,13 +136,12 @@ export const FormCard = () => {
       } = data;
 
       const appId = await saveApplication({
-        applicationId: savedApplicationId.current ?? undefined,
-        ...application,
-        entityName: application.entityName ?? undefined,
-        doingBusinessAs: application.doingBusinessAs ?? undefined,
-        vehicles: vehicles.map(({ id: _id, ...vehicle }) => vehicle),
+        applicationId: draftApplicationId ?? undefined,
+        ...toContactFields(data),
+        ...toBillingFields(data),
+        vehicles: toVehicleFields(vehicles),
       });
-      savedApplicationId.current = appId;
+      setApplicationId(appId);
 
       if (!paymentRef.current) {
         return;
@@ -163,7 +202,6 @@ export const FormCard = () => {
         });
       }
 
-      savedApplicationId.current = null;
       resetForm();
       toast.success('Application submitted', {
         description: invoiceSent
@@ -230,7 +268,7 @@ export const FormCard = () => {
             type="button"
             className="flex h-12 w-full sm:w-48 items-center justify-center gap-2 px-8 text-lg font-medium hover:bg-slate-900 hover:text-white"
             onClick={handlePreviousStep}
-            disabled={!canGoPrevious || isProcessing}
+            disabled={!canGoPrevious || isProcessing || isSaving}
           >
             <IconArrowLeftDashed className="size-4" />
             Previous
@@ -241,16 +279,16 @@ export const FormCard = () => {
             className="flex h-12 w-full sm:w-48 items-center justify-center gap-2 px-8 text-lg font-medium hover:bg-slate-900 hover:text-white"
             form="compliance-form"
             type={isLastStep ? 'submit' : 'button'}
-            onClick={isLastStep ? undefined : handleNextStep}
-            disabled={isProcessing || (isLastStep && !paymentFormReady)}
+            onClick={isLastStep ? undefined : goToNextStep}
+            disabled={isProcessing || isSaving || (isLastStep && !paymentFormReady)}
           >
             {(() => {
               let icon: ReactNode;
               let label: string;
 
-              if (isProcessing) {
+              if (isProcessing || isSaving) {
                 icon = <Loader2 className="size-4 animate-spin" />;
-                label = 'Processing...';
+                label = isProcessing ? 'Processing...' : 'Saving...';
               } else if (isLastStep) {
                 icon = <CreditCard className="size-4" />;
                 label = 'Pay & Submit';

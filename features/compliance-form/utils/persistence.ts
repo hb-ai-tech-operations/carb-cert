@@ -5,6 +5,7 @@ import type { DeepPartial } from 'react-hook-form';
 const STORAGE_KEY = 'compliance-form-state';
 
 export interface PersistedState {
+  applicationId?: string;
   step: StepNumber;
   values: DeepPartial<FormSchema>;
 }

@@ -35,26 +35,34 @@ const paymentValidator = v.object({
   cardLast4: v.optional(v.string()),
 });
 
+const contactFields = {
+  fullName: v.string(),
+  emailAddress: v.string(),
+  phone: v.string(),
+  applicationType: v.string(),
+  entityType: v.string(),
+  entityName: v.optional(v.string()),
+  doingBusinessAs: v.optional(v.string()),
+  physicalAddress: v.string(),
+  physicalCity: v.string(),
+  physicalState: v.string(),
+  physicalZipCode: v.string(),
+  physicalCountry: v.string(),
+};
+
+const billingFields = {
+  billingAddress: v.string(),
+  billingCity: v.string(),
+  billingState: v.string(),
+  billingZipCode: v.string(),
+  billingCountry: v.string(),
+};
+
 export const save = mutation({
   args: {
     applicationId: v.optional(v.id('complianceApplications')),
-    fullName: v.string(),
-    emailAddress: v.string(),
-    phone: v.string(),
-    applicationType: v.string(),
-    entityType: v.string(),
-    entityName: v.optional(v.string()),
-    doingBusinessAs: v.optional(v.string()),
-    physicalAddress: v.string(),
-    physicalCity: v.string(),
-    physicalState: v.string(),
-    physicalZipCode: v.string(),
-    physicalCountry: v.string(),
-    billingAddress: v.string(),
-    billingCity: v.string(),
-    billingState: v.string(),
-    billingZipCode: v.string(),
-    billingCountry: v.string(),
+    ...contactFields,
+    ...billingFields,
     vehicles: v.array(vehicleValidator),
   },
   handler: async (context, args) => {
@@ -63,6 +71,27 @@ export const save = mutation({
       applicationId,
       application,
       vehicles,
+      currentStep: 3,
+      status: 'pending',
+    });
+  },
+});
+
+export const saveProgress = mutation({
+  args: {
+    applicationId: v.optional(v.id('complianceApplications')),
+    currentStep: v.number(),
+    ...contactFields,
+    vehicles: v.optional(v.array(vehicleValidator)),
+  },
+  handler: async (context, args) => {
+    const { applicationId, currentStep, vehicles, ...application } = args;
+    return await saveApplication(context, {
+      applicationId,
+      application,
+      vehicles,
+      currentStep,
+      status: 'draft',
     });
   },
 });

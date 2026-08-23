@@ -54,13 +54,24 @@ export const AddressBlock = ({
   stateRegion,
   title,
 }: {
-  city: string;
-  country: string;
-  line1: string;
-  postal: string;
-  stateRegion: string;
+  city?: string | null;
+  country?: string | null;
+  line1?: string | null;
+  postal?: string | null;
+  stateRegion?: string | null;
   title: string;
 }) => {
+  const hasAddress = [line1, city, stateRegion, postal, country].some(Boolean);
+
+  if (!hasAddress) {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-sm text-muted-foreground">{title}</span>
+        <p className="text-muted-foreground">—</p>
+      </div>
+    );
+  }
+
   const lines = [line1, [city, stateRegion, postal].filter(Boolean).join(", ")]
     .filter(Boolean)
     .join("\n");
@@ -70,8 +81,12 @@ export const AddressBlock = ({
       <span className="text-sm text-muted-foreground">{title}</span>
       <address className="not-italic break-words font-medium text-foreground">
         {lines}
-        <br />
-        {country}
+        {country ? (
+          <>
+            <br />
+            {country}
+          </>
+        ) : null}
       </address>
     </div>
   );

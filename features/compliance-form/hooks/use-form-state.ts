@@ -12,11 +12,14 @@ import {
 } from '../utils';
 
 interface UseFormStateReturn {
+  applicationId: string | null;
   canGoNext: boolean;
   canGoPrevious: boolean;
   currentStep: StepNumber;
   form: UseFormReturn<FormSchema>;
-  handleNextStep: () => Promise<void>;
+  handleNextStep: (
+    onStepValid?: (data: FormSchema, step: StepNumber) => Promise<boolean>
+  ) => Promise<void>;
   handlePreviousStep: () => void;
   handleSubmit: (
     onSubmit: (data: FormSchema) => void | Promise<void>
@@ -24,6 +27,7 @@ interface UseFormStateReturn {
   isHydrated: boolean;
   isLastStep: boolean;
   resetForm: () => void;
+  setApplicationId: (id: string | null) => void;
   stepConfig: (typeof stepDefinitions)[number];
 }
 
@@ -51,10 +55,69 @@ const DEFAULT_VALUES: FormSchema = {
 };
 
 const TOTAL_STEPS = stepDefinitions.length;
+const PERSIST_DEBOUNCE_MS = 400;
+
+function usePersistedFormSession(
+  form: UseFormReturn<FormSchema>,
+  currentStep: StepNumber,
+  applicationId: string | null,
+  setCurrentStep: (step: StepNumber) => void,
+  setApplicationId: (id: string | null) => void
+): boolean {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    const persisted = loadPersistedState();
+    if (persisted) {
+      setCurrentStep(persisted.step);
+      form.reset({ ...DEFAULT_VALUES, ...persisted.values } as FormSchema);
+      if (persisted.applicationId) {
+        setApplicationId(persisted.applicationId);
+      }
+    }
+    setIsHydrated(true);
+  }, [form, setApplicationId, setCurrentStep]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const persist = (values: FormSchema) => {
+      savePersistedState({
+        step: currentStep,
+        values,
+        applicationId: applicationId ?? undefined,
+      });
+    };
+
+    persist(form.getValues());
+
+    const subscription = form.watch(values => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        persist(values as FormSchema);
+        timeoutId = null;
+      }, PERSIST_DEBOUNCE_MS);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [form, currentStep, applicationId, isHydrated]);
+
+  return isHydrated;
+}
 
 export function useFormState(): UseFormStateReturn {
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
 
   const stepConfig = useMemo(() => {
     const config = stepDefinitions.find(s => s.key === currentStep);
@@ -71,52 +134,37 @@ export function useFormState(): UseFormStateReturn {
     shouldUnregister: false,
   });
 
-  useEffect(() => {
-    const persisted = loadPersistedState();
-    if (persisted) {
-      setCurrentStep(persisted.step);
-      form.reset({ ...DEFAULT_VALUES, ...persisted.values } as FormSchema);
-    }
-    setIsHydrated(true);
-  }, [form]);
+  const isHydrated = usePersistedFormSession(
+    form,
+    currentStep,
+    applicationId,
+    setCurrentStep,
+    setApplicationId
+  );
 
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const DEBOUNCE_MS = 400;
-
-    const subscription = form.watch(values => {
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
+  const handleNextStep = useCallback(
+    async (
+      onStepValid?: (data: FormSchema, step: StepNumber) => Promise<boolean>
+    ) => {
+      const fieldsToValidate = [...stepConfig.fields] as Array<keyof FormSchema>;
+      const isValid = await form.trigger(fieldsToValidate, { shouldFocus: true });
+      if (!isValid) {
+        return;
       }
-      timeoutId = setTimeout(() => {
-        savePersistedState({ step: currentStep, values });
-        timeoutId = null;
-      }, DEBOUNCE_MS);
-    });
 
-    return () => {
-      subscription.unsubscribe();
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
+      if (onStepValid) {
+        const shouldAdvance = await onStepValid(form.getValues(), currentStep);
+        if (!shouldAdvance) {
+          return;
+        }
       }
-    };
-  }, [form, currentStep, isHydrated]);
 
-  const handleNextStep = useCallback(async () => {
-    const fieldsToValidate = [...stepConfig.fields] as Array<keyof FormSchema>;
-    const isValid = await form.trigger(fieldsToValidate, { shouldFocus: true });
-    if (!isValid) {
-      return;
-    }
-
-    setCurrentStep(
-      previous => Math.min(previous + 1, TOTAL_STEPS) as StepNumber
-    );
-  }, [form, stepConfig.fields]);
+      setCurrentStep(
+        previous => Math.min(previous + 1, TOTAL_STEPS) as StepNumber
+      );
+    },
+    [form, stepConfig.fields, currentStep]
+  );
 
   const handlePreviousStep = useCallback(() => {
     setCurrentStep(previous => Math.max(previous - 1, 1) as StepNumber);
@@ -133,6 +181,7 @@ export function useFormState(): UseFormStateReturn {
       await onSubmit(finalData);
 
       clearPersistedState();
+      setApplicationId(null);
       setCurrentStep(1);
       form.reset(DEFAULT_VALUES);
     },
@@ -141,6 +190,7 @@ export function useFormState(): UseFormStateReturn {
 
   const resetForm = useCallback(() => {
     clearPersistedState();
+    setApplicationId(null);
     setCurrentStep(1);
     form.reset(DEFAULT_VALUES);
   }, [form]);
@@ -150,6 +200,7 @@ export function useFormState(): UseFormStateReturn {
   const isLastStep = currentStep === TOTAL_STEPS;
 
   return {
+    applicationId,
     canGoNext,
     canGoPrevious,
     currentStep,
@@ -160,6 +211,7 @@ export function useFormState(): UseFormStateReturn {
     isHydrated,
     isLastStep,
     resetForm,
+    setApplicationId,
     stepConfig,
   };
 }

@@ -3,11 +3,11 @@ import type { MutationCtx as MutationContext } from '../_generated/server';
 
 interface ApplicationData {
   applicationType: string;
-  billingAddress: string;
-  billingCity: string;
-  billingCountry: string;
-  billingState: string;
-  billingZipCode: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingCountry?: string;
+  billingState?: string;
+  billingZipCode?: string;
   doingBusinessAs?: string;
   emailAddress: string;
   entityName?: string;
@@ -53,43 +53,89 @@ interface PaymentData {
   stripePaymentIntentId: string;
 }
 
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined)
+  ) as T;
+}
+
+function resolveStatus(
+  existingStatus: string | undefined,
+  requestedStatus: string
+): string {
+  if (existingStatus === 'paid' || requestedStatus === 'paid') {
+    return 'paid';
+  }
+  if (existingStatus === 'pending' && requestedStatus === 'draft') {
+    return 'pending';
+  }
+  return requestedStatus;
+}
+
+async function replaceVehicles(
+  context: MutationContext,
+  applicationId: Id<'complianceApplications'>,
+  vehicles: VehicleData[]
+) {
+  const existing = await context.db
+    .query('applicationVehicles')
+    .withIndex('by_applicationId', q => q.eq('applicationId', applicationId))
+    .collect();
+
+  await Promise.all(existing.map(vehicle => context.db.delete(vehicle._id)));
+  await Promise.all(
+    vehicles.map(vehicle =>
+      context.db.insert('applicationVehicles', {
+        applicationId,
+        ...vehicle,
+      })
+    )
+  );
+}
+
 export async function saveApplication(
   context: MutationContext,
   args: {
     application: ApplicationData;
     applicationId?: Id<'complianceApplications'>;
-    vehicles: VehicleData[];
+    currentStep?: number;
+    status?: string;
+    vehicles?: VehicleData[];
   }
 ): Promise<Id<'complianceApplications'>> {
-  const { applicationId, application, vehicles } = args;
+  const {
+    applicationId,
+    application,
+    currentStep,
+    status: requestedStatus = 'pending',
+    vehicles,
+  } = args;
+  const now = Date.now();
+  const fields = omitUndefined({
+    ...application,
+    currentStep,
+    updatedAt: now,
+  });
 
   let appId: Id<'complianceApplications'>;
+  const existing = applicationId ? await context.db.get(applicationId) : null;
 
-  if (applicationId) {
-    await context.db.patch(applicationId, application);
-    appId = applicationId;
-
-    const existing = await context.db
-      .query('applicationVehicles')
-      .withIndex('by_applicationId', q => q.eq('applicationId', applicationId))
-      .collect();
-
-    await Promise.all(existing.map(v => context.db.delete(v._id)));
+  if (existing && existing.status !== 'paid') {
+    appId = existing._id;
+    await context.db.patch(appId, {
+      ...fields,
+      status: resolveStatus(existing.status, requestedStatus),
+    });
   } else {
     appId = await context.db.insert('complianceApplications', {
-      ...application,
-      status: 'pending',
+      ...fields,
+      status: requestedStatus === 'paid' ? 'paid' : requestedStatus,
     });
   }
 
-  await Promise.all(
-    vehicles.map(vehicle =>
-      context.db.insert('applicationVehicles', {
-        applicationId: appId,
-        ...vehicle,
-      })
-    )
-  );
+  if (vehicles) {
+    await replaceVehicles(context, appId, vehicles);
+  }
 
   return appId;
 }
@@ -110,6 +156,9 @@ export async function recordPayment(
   });
 
   if (payment.status === 'succeeded') {
-    await context.db.patch(applicationId, { status: 'paid' });
+    await context.db.patch(applicationId, {
+      status: 'paid',
+      updatedAt: Date.now(),
+    });
   }
 }

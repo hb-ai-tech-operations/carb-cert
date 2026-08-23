@@ -29,6 +29,7 @@ export const ORDER_STATUS_BADGE_VARIANT: Record<
 > = {
   paid: 'default',
   pending: 'secondary',
+  draft: 'outline',
   failed: 'destructive',
 };
 

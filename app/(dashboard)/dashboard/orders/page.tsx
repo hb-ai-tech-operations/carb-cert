@@ -19,6 +19,7 @@ import {
 } from "@/features/dashboard/components/orders-columns";
 
 const STATUS_OPTIONS = [
+  { label: "Draft", value: "draft" },
   { label: "Pending", value: "pending" },
   { label: "Paid", value: "paid" },
   { label: "Failed", value: "failed" },

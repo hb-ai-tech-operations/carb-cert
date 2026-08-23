@@ -16,13 +16,15 @@ export default defineSchema({
     physicalState: v.string(),
     physicalZipCode: v.string(),
     physicalCountry: v.string(),
-    // Billing / Step 3
-    billingAddress: v.string(),
-    billingCity: v.string(),
-    billingState: v.string(),
-    billingZipCode: v.string(),
-    billingCountry: v.string(),
-    // Scalability
+    // Billing / Step 3 — optional until the client reaches payment
+    billingAddress: v.optional(v.string()),
+    billingCity: v.optional(v.string()),
+    billingState: v.optional(v.string()),
+    billingZipCode: v.optional(v.string()),
+    billingCountry: v.optional(v.string()),
+    currentStep: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    // draft | pending | paid
     status: v.optional(v.string()),
   })
     .index('by_status', ['status'])
