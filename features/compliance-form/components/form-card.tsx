@@ -1,6 +1,13 @@
 'use client';
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { IconArrowLeftDashed, IconArrowRightDashed } from '@tabler/icons-react';
 import { useMutation } from 'convex/react';
@@ -27,6 +34,10 @@ import { api } from '@/convex/_generated/api';
 import { getPaymentDetails } from '@/features/compliance-form/actions/get-payment-details';
 import { FormErrorBoundary } from '@/features/compliance-form/components/form-error-boundary';
 import { useFormState } from '@/features/compliance-form/hooks';
+import {
+  findSucceededPendingPayment,
+  type PaymentResult,
+} from '@/features/compliance-form/hooks/use-payment';
 import {
   type StepDefinition,
   stepDefinitions,
@@ -122,7 +133,7 @@ export const FormCard = () => {
     await handleNextStep(saveCompletedStep);
   };
 
-  const onSubmit = async () => {
+  const submitApplication = async (getPaymentResult: () => Promise<PaymentResult>) => {
     setPaymentError(null);
     setIsProcessing(true);
 
@@ -135,48 +146,52 @@ export const FormCard = () => {
         ...application
       } = data;
 
-      const appId = await saveApplication({
-        applicationId: draftApplicationId ?? undefined,
-        ...toContactFields(data),
-        ...toBillingFields(data),
-        vehicles: toVehicleFields(vehicles),
-      });
-      setApplicationId(appId);
+      let appId: Id<'complianceApplications'>;
+      let paymentResult: PaymentResult;
+      try {
+        appId = await saveApplication({
+          applicationId: draftApplicationId ?? undefined,
+          ...toContactFields(data),
+          ...toBillingFields(data),
+          vehicles: toVehicleFields(vehicles),
+        });
+        setApplicationId(appId);
 
-      if (!paymentRef.current) {
+        paymentResult = await getPaymentResult();
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Payment submission failed:', error);
+        setPaymentError('Could not process payment. Please check your connection and try again.');
         return;
       }
 
-      const paymentResult = await paymentRef.current.confirmPayment();
-      let cardBrand: string | undefined;
-      let cardLast4: string | undefined;
-
+      let card: { cardBrand?: string; cardLast4?: string } = {
+        cardBrand: paymentResult.cardBrand,
+        cardLast4: paymentResult.cardLast4,
+      };
       if (paymentResult.paymentIntentId) {
-        cardBrand =
-          paymentResult.cardBrand ??
-          (paymentResult.success
-            ? (await getPaymentDetails(paymentResult.paymentIntentId)).cardBrand
-            : undefined);
-        cardLast4 =
-          paymentResult.cardLast4 ??
-          (paymentResult.success
-            ? (await getPaymentDetails(paymentResult.paymentIntentId)).cardLast4
-            : undefined);
+        try {
+          if (paymentResult.success && !card.cardBrand) {
+            card = await getPaymentDetails(paymentResult.paymentIntentId);
+          }
 
-        await recordPayment({
-          applicationId: appId,
-          payment: {
-            stripePaymentIntentId: paymentResult.paymentIntentId,
-            status: paymentResult.success ? 'succeeded' : 'failed',
-            amount: paymentResult.amount ?? 0,
-            currency: 'usd',
-            errorCode: paymentResult.errorCode,
-            declineCode: paymentResult.declineCode,
-            errorMessage: paymentResult.error,
-            cardBrand,
-            cardLast4,
-          },
-        });
+          await recordPayment({
+            applicationId: appId,
+            payment: {
+              stripePaymentIntentId: paymentResult.paymentIntentId,
+              status: paymentResult.success ? 'succeeded' : 'failed',
+              amount: paymentResult.amount ?? 0,
+              currency: 'usd',
+              errorCode: paymentResult.errorCode,
+              declineCode: paymentResult.declineCode,
+              errorMessage: paymentResult.error,
+              ...card,
+            },
+          });
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to record payment attempt:', error);
+        }
       }
 
       if (!paymentResult.success) {
@@ -184,25 +199,33 @@ export const FormCard = () => {
         return;
       }
 
-      const { invoiceError, invoiceSent } = await runPostPaymentFollowUp({
-        appId,
-        application,
-        cardBrand,
-        cardLast4,
-        data,
-        paymentResult,
-        vehicles,
-      });
-
-      if (!invoiceSent) {
-        toast.warning('Payment succeeded, but invoice email could not be sent', {
-          description: invoiceError,
-          duration: 6000,
-          position: 'top-center',
+      // Card is charged from here on: never leave the customer on the payment
+      // step, or they may pay twice.
+      let invoiceSent = false;
+      try {
+        const followUp = await runPostPaymentFollowUp({
+          appId,
+          application,
+          ...card,
+          data,
+          paymentResult,
+          vehicles,
         });
+        ({ invoiceSent } = followUp);
+        if (!invoiceSent) {
+          toast.warning('Payment succeeded, but invoice email could not be sent', {
+            description: followUp.invoiceError,
+            duration: 6000,
+            position: 'top-center',
+          });
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Post-payment follow-up failed:', error);
       }
 
       resetForm();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success('Application submitted', {
         description: invoiceSent
           ? 'Your compliance application has been received. Check your email for the invoice.'
@@ -214,6 +237,32 @@ export const FormCard = () => {
       setIsProcessing(false);
     }
   };
+
+  const onSubmit = () =>
+    submitApplication(async () =>
+      paymentRef.current
+        ? paymentRef.current.confirmPayment()
+        : { success: false, error: 'Payment form is not ready. Please try again.' }
+    );
+
+  // The page can reload after the card is charged but before the order is
+  // finished (mobile tab discarded during 3DS). Finish it instead of asking
+  // the customer to pay again.
+  const recoveryChecked = useRef(false);
+  const recoverPaidOrder = useEffectEvent(async () => {
+    const paymentResult = await findSucceededPendingPayment().catch(() => null);
+    if (paymentResult) {
+      await submitApplication(async () => paymentResult);
+    }
+  });
+
+  useEffect(() => {
+    if (!isHydrated || recoveryChecked.current) {
+      return;
+    }
+    recoveryChecked.current = true;
+    void recoverPaidOrder();
+  }, [isHydrated]);
 
   if (!isHydrated) {
     return (
@@ -261,7 +310,12 @@ export const FormCard = () => {
           </Form>
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
+        {/* Browser auto-translate rewrites text nodes React owns; the button
+            label/icon swaps below can then crash the form mid-payment. */}
+        <CardFooter
+          className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0"
+          translate="no"
+        >
           <Button
             size="lg"
             variant="outline"

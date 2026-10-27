@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { createPaymentIntent } from '../actions/create-payment-intent';
+import { loadPendingPayment, savePendingPayment } from '../utils';
 
 import type {
   Stripe,
   StripeCardElement,
   StripeCardNumberElement,
 } from '@stripe/stripe-js';
+
+import { getStripe } from '@/lib/stripe/client';
 
 interface BillingDetails {
   address: {
@@ -58,6 +61,25 @@ function buildFailureResult(
     cardBrand: methodFromError?.card?.brand,
     cardLast4: methodFromError?.card?.last4,
   };
+}
+
+/**
+ * Returns the pending payment if it already succeeded, i.e. the card was
+ * charged but the page reloaded before the order was finished.
+ */
+export async function findSucceededPendingPayment(): Promise<PaymentResult | null> {
+  const clientSecret = loadPendingPayment();
+  if (!clientSecret) {
+    return null;
+  }
+
+  const stripe = await getStripe();
+  const result = await stripe?.retrievePaymentIntent(clientSecret);
+  const intent = result?.paymentIntent;
+
+  return intent?.status === 'succeeded'
+    ? { success: true, paymentIntentId: intent.id, amount: intent.amount }
+    : null;
 }
 
 interface UsePaymentReturn {
@@ -126,6 +148,7 @@ export function usePayment(vehicleCount: number): UsePaymentReturn {
         return { success: false, error: 'Payment not initialized' };
       }
 
+      savePendingPayment(clientSecret);
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,

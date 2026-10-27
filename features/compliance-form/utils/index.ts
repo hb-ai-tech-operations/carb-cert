@@ -5,8 +5,10 @@ export {
 } from './application-payload';
 export {
   clearPersistedState,
+  loadPendingPayment,
   loadPersistedState,
   type PersistedState,
+  savePendingPayment,
   savePersistedState,
 } from './persistence';
 export {
